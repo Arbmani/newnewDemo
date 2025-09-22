@@ -4,10 +4,13 @@ from typing import Optional, TypedDict
 import pulumi
 from pulumi import ResourceOptions
 from pulumi_aws import s3
+from html_helper import get_template
 
-class StaticPageArgs(TypedDict):
+class StaticPageArgs(TypedDict, total=False):
     index_content: pulumi.Input[str]
     """The HTML content for index.html."""
+
+    template_name: str
 
 class StaticPage(pulumi.ComponentResource):
     endpoint: pulumi.Output[str]
@@ -19,6 +22,13 @@ class StaticPage(pulumi.ComponentResource):
                  opts: Optional[ResourceOptions] = None) -> None:
 
         super().__init__('static-page-component:index:StaticPage', name, {}, opts)
+
+        content_input: pulumi.Input[str] = (
+            args["index_content"]
+            if "index_content" in args and args["index_content"] is not None
+            else get_template(args.get("template_name", "a"))
+        )
+
 
         # Create a bucket
         bucket = s3.Bucket(
