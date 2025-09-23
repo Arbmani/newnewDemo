@@ -1,8 +1,9 @@
+# static_page.py (provider side)
+
 import json
 import pulumi
-from pulumi import ResourceOptions
 from pulumi_aws import s3
-from typing import Optional, TypedDict, Union, cast
+from typing import Optional, TypedDict
 
 class StaticPageArgs(TypedDict):
     index_content: pulumi.Input[str]
@@ -10,22 +11,8 @@ class StaticPageArgs(TypedDict):
 class StaticPage(pulumi.ComponentResource):
     endpoint: pulumi.Output[str]
 
-    # NOTE: 'args' with a type annotation is present to satisfy component_provider_host.
-    # We also accept index_content=... directly for convenience.
-    def __init__(
-        self,
-        name: str,
-        args: Optional[StaticPageArgs] = None,
-        opts: Optional[ResourceOptions] = None,
-        *,
-        index_content: Optional[pulumi.Input[str]] = None,
-    ):
+    def __init__(self, name: str, args: StaticPageArgs, opts: Optional[pulumi.ResourceOptions] = None):
         super().__init__("static-page-component:index:StaticPage", name, None, opts)
-
-        if args is None:
-            if index_content is None:
-                raise TypeError("index_content is required")
-            args = cast(StaticPageArgs, {"index_content": index_content})
 
         bucket = s3.Bucket(name)
 
@@ -43,7 +30,7 @@ class StaticPage(pulumi.ComponentResource):
             content_type="text/html",
         )
 
-        # Allow a public *policy* to take effect (common defaults block this)
+        # Allow policy-based public read to take effect
         s3.BucketPublicAccessBlock(
             f"{name}-pab",
             bucket=bucket.id,
@@ -54,21 +41,15 @@ class StaticPage(pulumi.ComponentResource):
         s3.BucketPolicy(
             f"{name}-policy",
             bucket=bucket.bucket,
-            policy=bucket.bucket.apply(
-                lambda b: json.dumps(
-                    {
-                        "Version": "2012-10-17",
-                        "Statement": [
-                            {
-                                "Effect": "Allow",
-                                "Principal": "*",
-                                "Action": "s3:GetObject",
-                                "Resource": f"arn:aws:s3:::{b}/*",
-                            }
-                        ],
-                    }
-                )
-            ),
+            policy=bucket.bucket.apply(lambda b: json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Effect": "Allow",
+                    "Principal": "*",
+                    "Action": "s3:GetObject",
+                    "Resource": f"arn:aws:s3:::{b}/*",
+                }],
+            })),
         )
 
         self.endpoint = website.website_endpoint
