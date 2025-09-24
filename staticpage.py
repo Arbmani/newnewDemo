@@ -52,6 +52,7 @@ class StaticPage(pulumi.ComponentResource):
             f"{name}-BucketPolicy",
             bucket=bucket.bucket,
             policy=bucket.bucket.apply(lambda b: json.dumps({
+                "Version": "2012-10-17",
                 "Statement": [{
                     "Effect": "Allow",
                     "Principal": "*",
