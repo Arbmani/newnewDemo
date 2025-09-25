@@ -6,7 +6,7 @@ from pulumi import ResourceOptions
 from pulumi_aws import s3
 
 class StaticPageArgs(TypedDict):
-    pages: pulumi.Input[dict[str, str]]
+    pages: dict[str, str]
 
 class StaticPage(pulumi.ComponentResource):
     endpoint: pulumi.Output[str]
